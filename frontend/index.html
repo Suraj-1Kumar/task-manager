@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow — Team Task Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c26;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --accent: #7c6fff;
+    --accent2: #a78bfa;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --text: #f0f0f5;
+    --muted: #8888a0;
+    --muted2: #5a5a72;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; }
+  h1,h2,h3,h4 { font-family: 'Syne', sans-serif; }
+
+  /* AUTH SCREEN */
+  #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+  .auth-card {
+    width: 100%; max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 2.5rem;
+  }
+  .auth-logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--accent2); margin-bottom: 0.25rem; }
+  .auth-logo span { color: var(--text); }
+  .auth-sub { color: var(--muted); font-size: 13px; margin-bottom: 2rem; }
+  .tab-row { display: flex; gap: 0; margin-bottom: 1.75rem; background: var(--bg); border-radius: var(--radius-sm); padding: 3px; border: 1px solid var(--border); }
+  .tab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+  .tab-btn.active { background: var(--surface2); color: var(--text); }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--surface); }
+  .btn-primary {
+    width: 100%; padding: 11px; background: var(--accent);
+    border: none; border-radius: var(--radius-sm); color: #fff;
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.2s; margin-top: 0.5rem;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .msg { font-size: 13px; padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 1rem; display: none; }
+  .msg.error { background: rgba(248,113,113,0.12); color: var(--danger); border: 1px solid rgba(248,113,113,0.25); display: block; }
+  .msg.success { background: rgba(52,211,153,0.12); color: var(--success); border: 1px solid rgba(52,211,153,0.25); display: block; }
+
+  /* APP SHELL */
+  #app-screen { display: none; min-height: 100vh; flex-direction: column; }
+  .topbar {
+    height: 56px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 1.5rem; gap: 1rem; position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent2); flex: 1; }
+  .topbar-logo span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .user-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px;
+  }
+  .user-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+  .role-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .role-badge.admin { background: rgba(124,111,255,0.2); color: var(--accent2); }
+  .role-badge.member { background: rgba(52,211,153,0.15); color: var(--success); }
+  .btn-logout { background: transparent; border: 1px solid var(--border2); color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  .nav-tabs { display: flex; gap: 2px; padding: 0 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .nav-tab { padding: 12px 16px; background: transparent; border: none; color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .nav-tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .nav-tab:hover:not(.active) { color: var(--text); }
+
+  .main-content { flex: 1; padding: 2rem 1.5rem; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+  /* DASHBOARD STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; }
+  .stat-value.purple { color: var(--accent2); }
+  .stat-value.green { color: var(--success); }
+  .stat-value.yellow { color: var(--warning); }
+  .stat-value.red { color: var(--danger); }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 600; }
+  .btn-add { display: flex; align-items: center; gap: 6px; background: var(--accent); border: none; color: #fff; padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: opacity 0.2s; }
+  .btn-add:hover { opacity: 0.85; }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .empty-row td { text-align: center; color: var(--muted); padding: 2.5rem; }
+
+  /* BADGES */
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge-todo { background: rgba(136,136,160,0.15); color: var(--muted); }
+  .badge-progress { background: rgba(124,111,255,0.2); color: var(--accent2); }
+  .badge-done { background: rgba(52,211,153,0.15); color: var(--success); }
+  .badge-overdue { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .badge-admin { background: rgba(124,111,255,0.15); color: var(--accent2); }
+  .badge-member { background: rgba(52,211,153,0.12); color: var(--success); }
+
+  /* ACTION BUTTONS */
+  .btn-sm { padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; transition: all 0.2s; margin-right: 4px; }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent2); }
+  .btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 2rem; width: 100%; max-width: 460px; }
+  .modal h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.5rem; justify-content: flex-end; }
+  .btn-cancel { padding: 9px 18px; background: transparent; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
+  .btn-cancel:hover { border-color: var(--border2); color: var(--text); }
+  .btn-submit { padding: 9px 18px; background: var(--accent); border: none; color: #fff; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; }
+
+  /* PAGE VISIBILITY */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* LOADING */
+  .loading { color: var(--muted); text-align: center; padding: 2rem; font-size: 13px; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; }
+  .toast-item { background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 12px 16px; font-size: 13px; margin-top: 8px; animation: slideIn 0.3s ease; }
+  .toast-item.ok { border-color: rgba(52,211,153,0.4); color: var(--success); }
+  .toast-item.err { border-color: rgba(248,113,113,0.4); color: var(--danger); }
+  @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Task<span>Flow</span></div>
+    <p class="auth-sub">Team collaboration platform</p>
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign in</button>
+      <button class="tab-btn" onclick="switchTab('signup')">Sign up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-form">
+      <div class="form-group"><label>Username</label><input type="text" id="l-username" placeholder="your username" /></div>
+      <div class="form-group"><label>Password</label><input type="password" id="l-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+      <button class="btn-primary" onclick="doLogin()" id="login-btn">Sign in</button>
+      <div class="msg" id="login-msg"></div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signup-form" style="display:none">
+      <div class="form-group"><label>Username</label><input type="text" id="s-username" placeholder="choose a username" /></div>
+      <div class="form-group"><label>Email</label><input type="email" id="s-email" placeholder="you@example.com" /></div>
+      <div class="form-group"><label>Password</label><input type="password" id="s-password" placeholder="min 6 characters" /></div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="s-role">
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doSignup()" id="signup-btn">Create account</button>
+      <div class="msg" id="signup-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none; flex-direction:column; min-height:100vh;">
+  <div class="topbar">
+    <div class="topbar-logo">TaskFlow <span id="topbar-sub"></span></div>
+    <div class="user-badge">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <span id="user-name-display" style="font-size:13px;"></span>
+      <span class="role-badge" id="role-badge-display"></span>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('projects')">Projects</button>
+    <button class="nav-tab" onclick="showPage('tasks')">Tasks</button>
+    <button class="nav-tab admin-only" onclick="showPage('members')" style="display:none">Members</button>
+  </div>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Projects</div><div class="stat-value purple" id="stat-projects">—</div></div>
+        <div class="stat-card"><div class="stat-label">Total Tasks</div><div class="stat-value purple" id="stat-tasks">—</div></div>
+        <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value yellow" id="stat-progress">—</div></div>
+        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value green" id="stat-done">—</div></div>
+        <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-value red" id="stat-overdue">—</div></div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Recent tasks</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Task</th><th>Project</th><th>Status</th><th>Due date</th></tr></thead>
+          <tbody id="dashboard-tasks-tbody"><tr class="empty-row"><td colspan="4">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="page" id="page-projects">
+      <div class="section-header">
+        <div class="section-title">Projects</div>
+        <button class="btn-add" onclick="openModal('project')">+ New project</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+          <tbody id="projects-tbody"><tr class="empty-row"><td colspan="3">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="page" id="page-tasks">
+      <div class="section-header">
+        <div class="section-title">Tasks</div>
+        <button class="btn-add" onclick="openModal('task')">+ New task</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Project</th><th>Assigned to</th><th>Status</th><th>Due</th><th>Actions</th></tr></thead>
+          <tbody id="tasks-tbody"><tr class="empty-row"><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MEMBERS (Admin only) -->
+    <div class="page" id="page-members">
+      <div class="section-header"><div class="section-title">Team members</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Username</th><th>Email</th><th>Role</th></tr></thead>
+          <tbody id="members-tbody"><tr class="empty-row"><td colspan="3">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PROJECT MODAL -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <h3 id="modal-project-title">New project</h3>
+    <div class="form-group"><label>Project name</label><input type="text" id="proj-name" placeholder="e.g. Marketing Campaign" /></div>
+    <div class="form-group"><label>Description</label><input type="text" id="proj-desc" placeholder="Brief description..." /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('project')">Cancel</button>
+      <button class="btn-submit" onclick="saveProject()">Save project</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <h3 id="modal-task-title">New task</h3>
+    <div class="form-group"><label>Title</label><input type="text" id="task-title" placeholder="Task title" /></div>
+    <div class="form-group"><label>Description</label><input type="text" id="task-desc" placeholder="Details..." /></div>
+    <div class="form-group"><label>Project</label><select id="task-project"></select></div>
+    <div class="form-group"><label>Assign to (username)</label><input type="text" id="task-assignee" placeholder="username" /></div>
+    <div class="form-group"><label>Status</label>
+      <select id="task-status">
+        <option value="TODO">To do</option>
+        <option value="IN_PROGRESS">In progress</option>
+        <option value="DONE">Done</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Due date</label><input type="date" id="task-due" /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('task')">Cancel</button>
+      <button class="btn-submit" onclick="saveTask()">Save task</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'https://task-manager-production-dc85.up.railway.app';
+let token = localStorage.getItem('tf_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('tf_user') || 'null');
+let editingProjectId = null, editingTaskId = null;
+let allProjects = [], allTasks = [];
+
+function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return fetch(API + path, { headers, ...opts }).then(async r => {
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  });
+}
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = 'toast-item ' + (ok ? 'ok' : 'err');
+  el.textContent = msg;
+  t.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function switchTab(tab) {
+  document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (i === 0) === (tab === 'login')));
+}
+
+async function doLogin() {
+  const username = document.getElementById('l-username').value.trim();
+  const password = document.getElementById('l-password').value;
+  const msgEl = document.getElementById('login-msg');
+  msgEl.className = 'msg'; msgEl.style.display = 'none';
+  if (!username || !password) { msgEl.className = 'msg error'; msgEl.textContent = 'Fill in all fields.'; return; }
+  document.getElementById('login-btn').disabled = true;
+  try {
+    const data = await api('/api/auth/signin', { method: 'POST', body: JSON.stringify({ username, password }) });
+    token = data.token || data.accessToken || data.jwt || '';
+    if (!token) throw new Error('No token received');
+    currentUser = { id: data.id, username: data.username, email: data.email, roles: data.roles || [] };
+    localStorage.setItem('tf_token', token);
+    localStorage.setItem('tf_user', JSON.stringify(currentUser));
+    initApp();
+  } catch (e) {
+    msgEl.className = 'msg error'; msgEl.textContent = e.message;
+  } finally { document.getElementById('login-btn').disabled = false; }
+}
+
+async function doSignup() {
+  const username = document.getElementById('s-username').value.trim();
+  const email = document.getElementById('s-email').value.trim();
+  const password = document.getElementById('s-password').value;
+  const role = document.getElementById('s-role').value;
+  const msgEl = document.getElementById('signup-msg');
+  msgEl.className = 'msg'; msgEl.style.display = 'none';
+  if (!username || !email || !password) { msgEl.className = 'msg error'; msgEl.textContent = 'Fill in all fields.'; return; }
+  document.getElementById('signup-btn').disabled = true;
+  try {
+    await api('/api/auth/signup', { method: 'POST', body: JSON.stringify({ username, email, password, role: [role] }) });
+    msgEl.className = 'msg success'; msgEl.textContent = 'Account created! Sign in now.';
+    switchTab('login');
+    document.getElementById('l-username').value = username;
+  } catch (e) {
+    msgEl.className = 'msg error'; msgEl.textContent = e.message;
+  } finally { document.getElementById('signup-btn').disabled = false; }
+}
+
+function doLogout() {
+  token = ''; currentUser = null;
+  localStorage.removeItem('tf_token'); localStorage.removeItem('tf_user');
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function isAdmin() {
+  return currentUser && currentUser.roles && currentUser.roles.some(r => r === 'ROLE_ADMIN' || r === 'admin' || (r.name && r.name === 'ROLE_ADMIN'));
+}
+
+function initApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+  const name = currentUser.username || 'User';
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('user-name-display').textContent = name;
+  const rb = document.getElementById('role-badge-display');
+  rb.textContent = isAdmin() ? 'Admin' : 'Member';
+  rb.className = 'role-badge ' + (isAdmin() ? 'admin' : 'member');
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin() ? '' : 'none');
+  loadAll();
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => { if (t.textContent.toLowerCase().includes(name)) t.classList.add('active'); });
+  if (name === 'dashboard') loadDashboard();
+  else if (name === 'projects') renderProjects();
+  else if (name === 'tasks') renderTasks();
+  else if (name === 'members') loadMembers();
+}
+
+async function loadAll() {
+  try {
+    const [pRes, tRes] = await Promise.all([
+      api('/api/projects').catch(() => []),
+      api('/api/tasks').catch(() => [])
+    ]);
+    allProjects = Array.isArray(pRes) ? pRes : (pRes.content || pRes.data || []);
+    allTasks = Array.isArray(tRes) ? tRes : (tRes.content || tRes.data || []);
+    loadDashboard();
+  } catch(e) { toast('Failed to load data: ' + e.message, false); }
+}
+
+function statusBadge(s) {
+  const map = { TODO: 'badge-todo', IN_PROGRESS: 'badge-progress', DONE: 'badge-done' };
+  const label = { TODO: 'To do', IN_PROGRESS: 'In progress', DONE: 'Done' };
+  return `<span class="badge ${map[s] || 'badge-todo'}">${label[s] || s}</span>`;
+}
+
+function isOverdue(task) {
+  if (!task.dueDate || task.status === 'DONE') return false;
+  return new Date(task.dueDate) < new Date();
+}
+
+function loadDashboard() {
+  const overdueTasks = allTasks.filter(isOverdue);
+  document.getElementById('stat-projects').textContent = allProjects.length;
+  document.getElementById('stat-tasks').textContent = allTasks.length;
+  document.getElementById('stat-progress').textContent = allTasks.filter(t => t.status === 'IN_PROGRESS').length;
+  document.getElementById('stat-done').textContent = allTasks.filter(t => t.status === 'DONE').length;
+  document.getElementById('stat-overdue').textContent = overdueTasks.length;
+
+  const tbody = document.getElementById('dashboard-tasks-tbody');
+  const recent = [...allTasks].sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0)).slice(0, 8);
+  if (!recent.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No tasks yet</td></tr>'; return; }
+  tbody.innerHTML = recent.map(t => {
+    const proj = allProjects.find(p => p.id === (t.projectId || t.project?.id));
+    const overdue = isOverdue(t);
+    return `<tr>
+      <td>${t.title || t.name}</td>
+      <td style="color:var(--muted)">${proj ? proj.name : '—'}</td>
+      <td>${overdue ? '<span class="badge badge-overdue">Overdue</span>' : statusBadge(t.status)}</td>
+      <td style="color:var(--muted)">${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderProjects() {
+  const tbody = document.getElementById('projects-tbody');
+  if (!allProjects.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No projects yet. Create one!</td></tr>'; return; }
+  tbody.innerHTML = allProjects.map(p => `<tr>
+    <td style="font-weight:500">${p.name}</td>
+    <td style="color:var(--muted)">${p.description || '—'}</td>
+    <td>
+      <button class="btn-sm" onclick="editProject(${p.id})">Edit</button>
+      ${isAdmin() ? `<button class="btn-sm danger" onclick="deleteProject(${p.id})">Delete</button>` : ''}
+    </td>
+  </tr>`).join('');
+}
+
+function renderTasks() {
+  const tbody = document.getElementById('tasks-tbody');
+  if (!allTasks.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No tasks yet. Create one!</td></tr>'; return; }
+  tbody.innerHTML = allTasks.map(t => {
+    const proj = allProjects.find(p => p.id === (t.projectId || t.project?.id));
+    const overdue = isOverdue(t);
+    return `<tr>
+      <td style="font-weight:500">${t.title || t.name}</td>
+      <td style="color:var(--muted)">${proj ? proj.name : '—'}</td>
+      <td style="color:var(--muted)">${t.assignedTo?.username || t.assignedUsername || '—'}</td>
+      <td>${overdue ? '<span class="badge badge-overdue">Overdue</span>' : statusBadge(t.status)}</td>
+      <td style="color:var(--muted)">${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—'}</td>
+      <td>
+        <button class="btn-sm" onclick="editTask(${t.id})">Edit</button>
+        ${isAdmin() ? `<button class="btn-sm danger" onclick="deleteTask(${t.id})">Delete</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadMembers() {
+  const tbody = document.getElementById('members-tbody');
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Loading...</td></tr>';
+  try {
+    const data = await api('/api/users');
+    const users = Array.isArray(data) ? data : (data.content || data.data || []);
+    if (!users.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No members found.</td></tr>'; return; }
+    tbody.innerHTML = users.map(u => `<tr>
+      <td style="font-weight:500">${u.username}</td>
+      <td style="color:var(--muted)">${u.email || '—'}</td>
+      <td>${u.roles?.map(r => `<span class="badge ${r.includes('ADMIN')||r==='admin'?'badge-admin':'badge-member'}">${r.replace('ROLE_','')}</span>`).join(' ') || '—'}</td>
+    </tr>`).join('');
+  } catch(e) { tbody.innerHTML = `<tr class="empty-row"><td colspan="3">Could not load members: ${e.message}</td></tr>`; }
+}
+
+function openModal(type) {
+  if (type === 'project') {
+    editingProjectId = null;
+    document.getElementById('modal-project-title').textContent = 'New project';
+    document.getElementById('proj-name').value = '';
+    document.getElementById('proj-desc').value = '';
+    document.getElementById('modal-project').classList.add('open');
+  } else {
+    editingTaskId = null;
+    document.getElementById('modal-task-title').textContent = 'New task';
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-desc').value = '';
+    document.getElementById('task-assignee').value = '';
+    document.getElementById('task-status').value = 'TODO';
+    document.getElementById('task-due').value = '';
+    const sel = document.getElementById('task-project');
+    sel.innerHTML = allProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('') || '<option value="">No projects</option>';
+    document.getElementById('modal-task').classList.add('open');
+  }
+}
+
+function editProject(id) {
+  const p = allProjects.find(x => x.id === id);
+  if (!p) return;
+  editingProjectId = id;
+  document.getElementById('modal-project-title').textContent = 'Edit project';
+  document.getElementById('proj-name').value = p.name;
+  document.getElementById('proj-desc').value = p.description || '';
+  document.getElementById('modal-project').classList.add('open');
+}
+
+function editTask(id) {
+  const t = allTasks.find(x => x.id === id);
+  if (!t) return;
+  editingTaskId = id;
+  document.getElementById('modal-task-title').textContent = 'Edit task';
+  document.getElementById('task-title').value = t.title || t.name;
+  document.getElementById('task-desc').value = t.description || '';
+  document.getElementById('task-assignee').value = t.assignedTo?.username || t.assignedUsername || '';
+  document.getElementById('task-status').value = t.status || 'TODO';
+  document.getElementById('task-due').value = t.dueDate ? t.dueDate.split('T')[0] : '';
+  const sel = document.getElementById('task-project');
+  sel.innerHTML = allProjects.map(p => `<option value="${p.id}" ${p.id===(t.projectId||t.project?.id)?'selected':''}>${p.name}</option>`).join('');
+  document.getElementById('modal-task').classList.add('open');
+}
+
+function closeModal(type) { document.getElementById('modal-' + type).classList.remove('open'); }
+
+async function saveProject() {
+  const name = document.getElementById('proj-name').value.trim();
+  const description = document.getElementById('proj-desc').value.trim();
+  if (!name) { toast('Project name is required', false); return; }
+  try {
+    if (editingProjectId) {
+      const updated = await api('/api/projects/' + editingProjectId, { method: 'PUT', body: JSON.stringify({ name, description }) });
+      const idx = allProjects.findIndex(p => p.id === editingProjectId);
+      if (idx >= 0) allProjects[idx] = updated;
+      toast('Project updated');
+    } else {
+      const created = await api('/api/projects', { method: 'POST', body: JSON.stringify({ name, description }) });
+      allProjects.push(created);
+      toast('Project created');
+    }
+    closeModal('project'); renderProjects(); loadDashboard();
+  } catch(e) { toast(e.message, false); }
+}
+
+async function saveTask() {
+  const title = document.getElementById('task-title').value.trim();
+  const description = document.getElementById('task-desc').value.trim();
+  const projectId = document.getElementById('task-project').value;
+  const assignedUsername = document.getElementById('task-assignee').value.trim();
+  const status = document.getElementById('task-status').value;
+  const dueDate = document.getElementById('task-due').value;
+  if (!title) { toast('Task title is required', false); return; }
+  const body = { title, description, status, projectId: parseInt(projectId), assignedUsername, dueDate: dueDate || null };
+  try {
+    if (editingTaskId) {
+      const updated = await api('/api/tasks/' + editingTaskId, { method: 'PUT', body: JSON.stringify(body) });
+      const idx = allTasks.findIndex(t => t.id === editingTaskId);
+      if (idx >= 0) allTasks[idx] = updated;
+      toast('Task updated');
+    } else {
+      const created = await api('/api/tasks', { method: 'POST', body: JSON.stringify(body) });
+      allTasks.push(created);
+      toast('Task created');
+    }
+    closeModal('task'); renderTasks(); loadDashboard();
+  } catch(e) { toast(e.message, false); }
+}
+
+async function deleteProject(id) {
+  if (!confirm('Delete this project?')) return;
+  try {
+    await api('/api/projects/' + id, { method: 'DELETE' });
+    allProjects = allProjects.filter(p => p.id !== id);
+    toast('Project deleted'); renderProjects(); loadDashboard();
+  } catch(e) { toast(e.message, false); }
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  try {
+    await api('/api/tasks/' + id, { method: 'DELETE' });
+    allTasks = allTasks.filter(t => t.id !== id);
+    toast('Task deleted'); renderTasks(); loadDashboard();
+  } catch(e) { toast(e.message, false); }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+if (token && currentUser) { initApp(); } else { document.getElementById('auth-screen').style.display = 'flex'; }
+</script>
+</body>
+</html>
